@@ -1,0 +1,5 @@
+is_debug = false
+is_official_build = false
+symbol_level = 0
+blink_symbol_level = 0
+enable_nacl = false

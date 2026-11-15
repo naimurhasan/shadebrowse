@@ -1,0 +1,53 @@
+diff --git a/third_party/blink/renderer/modules/webaudio/audio_buffer.cc b/third_party/blink/renderer/modules/webaudio/audio_buffer.cc
+index 9a66186d8e6c2..86fac4d906111 100644
+--- a/third_party/blink/renderer/modules/webaudio/audio_buffer.cc
++++ b/third_party/blink/renderer/modules/webaudio/audio_buffer.cc
+@@ -39,6 +39,7 @@
+ #include "third_party/blink/renderer/platform/audio/audio_utilities.h"
+ #include "third_party/blink/renderer/platform/bindings/exception_messages.h"
+ #include "third_party/blink/renderer/platform/bindings/exception_state.h"
++#include "third_party/blink/renderer/platform/shade/shade.h"
+ #include "third_party/blink/renderer/platform/wtf/text/strcat.h"
+ 
+ namespace blink {
+@@ -223,6 +224,16 @@ NotShared<DOMFloat32Array> AudioBuffer::getChannelData(unsigned channel_index) {
+   return NotShared<DOMFloat32Array>(channels_[channel_index].Get());
+ }
+ 
++void AudioBuffer::ApplyShade() {
++  const std::optional<uint64_t> seed = shade::Seed();
++  if (!seed) {
++    return;
++  }
++  for (const auto& channel : channels_) {
++    shade::PerturbSamples(channel->Data(), channel->length(), *seed);
++  }
++}
++
+ void AudioBuffer::copyFromChannel(NotShared<DOMFloat32Array> destination,
+                                   int32_t channel_number,
+                                   ExceptionState& exception_state) {
+diff --git a/third_party/blink/renderer/modules/webaudio/audio_buffer.h b/third_party/blink/renderer/modules/webaudio/audio_buffer.h
+index 0dd11f830ee28..fb476c580420a 100644
+--- a/third_party/blink/renderer/modules/webaudio/audio_buffer.h
++++ b/third_party/blink/renderer/modules/webaudio/audio_buffer.h
+@@ -115,6 +115,7 @@ class MODULES_EXPORT AudioBuffer final : public ScriptWrappable {
+   }
+ 
+   std::unique_ptr<SharedAudioBuffer> CreateSharedAudioBuffer();
++  void ApplyShade();
+ 
+  private:
+   bool CreatedSuccessfully(unsigned desired_number_of_channels) const;
+diff --git a/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc b/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
+index 3200c4522c7a3..0d71cd0e14f3b 100644
+--- a/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
++++ b/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
+@@ -577,6 +577,7 @@ void OfflineAudioContext::OnChunkRendered() {
+   Member<AudioBuffer> rendered_buffer = pending_render_targets_.front();
+ 
+   CHECK(rendered_buffer);
++  rendered_buffer->ApplyShade();
+   // Keep the target queued across `Resolve()` so synchronous thenable getters
+   // can enqueue more chunks without starting a duplicate render.
+   resolver->Resolve(rendered_buffer.Get());

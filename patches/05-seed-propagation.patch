@@ -1,0 +1,28 @@
+diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content/browser/renderer_host/render_process_host_impl.cc
+index 5fd08e7d587a2..185abf9376c5d 100644
+--- a/content/browser/renderer_host/render_process_host_impl.cc
++++ b/content/browser/renderer_host/render_process_host_impl.cc
+@@ -3918,6 +3918,10 @@ void RenderProcessHostImpl::AppendRendererCommandLine(
+ #endif  // BUILDFLAG(IS_LINUX)
+ }
+ 
++constexpr char kShadeSeedSwitch[] = "shade-seed";
++constexpr const char* kShadeSwitchNames[] = {kShadeSeedSwitch,
++                                             "shade-deterministic"};
++
+ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+     const base::CommandLine& browser_cmd,
+     base::CommandLine* renderer_cmd) {
+@@ -4116,6 +4120,12 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+ #endif
+   };
+   renderer_cmd->CopySwitchesFrom(browser_cmd, kSwitchNames);
++  renderer_cmd->CopySwitchesFrom(browser_cmd, kShadeSwitchNames);
++  if (!renderer_cmd->HasSwitch(kShadeSeedSwitch)) {
++    static const uint64_t session_seed = base::RandUint64();
++    renderer_cmd->AppendSwitchASCII(kShadeSeedSwitch,
++                                    base::NumberToString(session_seed));
++  }
+ 
+   // Propagate WebNN switches needed by backends that run in the renderer.
+   renderer_cmd->CopySwitchesFrom(

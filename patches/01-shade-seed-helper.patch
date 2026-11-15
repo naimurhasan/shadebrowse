@@ -1,0 +1,152 @@
+diff --git a/third_party/blink/renderer/platform/BUILD.gn b/third_party/blink/renderer/platform/BUILD.gn
+index 580134bf3920a..ac7cd85498c70 100644
+--- a/third_party/blink/renderer/platform/BUILD.gn
++++ b/third_party/blink/renderer/platform/BUILD.gn
+@@ -711,6 +711,8 @@ component("platform") {
+     "fonts/character_range.h",
+     "fonts/custom_font_data.h",
+     "fonts/font.cc",
++    "shade/shade.cc",
++    "shade/shade.h",
+     "fonts/font.h",
+     "fonts/font_baseline.h",
+     "fonts/font_cache.cc",
+diff --git a/third_party/blink/renderer/platform/shade/shade.cc b/third_party/blink/renderer/platform/shade/shade.cc
+new file mode 100644
+index 0000000000000..66e8989c4abfa
+--- /dev/null
++++ b/third_party/blink/renderer/platform/shade/shade.cc
+@@ -0,0 +1,102 @@
++#ifdef UNSAFE_BUFFERS_BUILD
++#pragma allow_unsafe_buffers
++#endif
++
++#include "third_party/blink/renderer/platform/shade/shade.h"
++
++#include <algorithm>
++#include <string>
++
++#include "base/command_line.h"
++#include "base/strings/string_number_conversions.h"
++#include "third_party/skia/include/core/SkPixmap.h"
++
++namespace blink::shade {
++
++namespace {
++
++constexpr char kSeedSwitch[] = "shade-seed";
++constexpr unsigned kConcurrencyChoices[] = {2, 4, 8, 12, 16};
++constexpr float kSampleScale = 1e-6f;
++
++std::optional<uint64_t> ParseSeed() {
++  const std::string value =
++      base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(kSeedSwitch);
++  uint64_t seed = 0;
++  if (value.empty() || !base::StringToUint64(value, &seed)) {
++    return std::nullopt;
++  }
++  return seed;
++}
++
++uint64_t PixelKey(const uint8_t* pixel, int x, int y) {
++  const uint64_t color = (uint64_t{pixel[0]} << 24) | (uint64_t{pixel[1]} << 16) |
++                         (uint64_t{pixel[2]} << 8) | uint64_t{pixel[3]};
++  return color ^ (static_cast<uint64_t>(x) << 32) ^
++         (static_cast<uint64_t>(y) << 48);
++}
++
++}
++
++std::optional<uint64_t> Seed() {
++  static const std::optional<uint64_t> seed = ParseSeed();
++  return seed;
++}
++
++uint64_t Mix(uint64_t seed, uint64_t value) {
++  uint64_t z = seed ^ (value + 0x9e3779b97f4a7c15ull);
++  z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ull;
++  z = (z ^ (z >> 27)) * 0x94d049bb133111ebull;
++  return z ^ (z >> 31);
++}
++
++void PerturbPixels(const SkPixmap& pixmap, uint64_t seed) {
++  if (pixmap.colorType() != kRGBA_8888_SkColorType &&
++      pixmap.colorType() != kBGRA_8888_SkColorType) {
++    return;
++  }
++  for (int y = 0; y < pixmap.height(); ++y) {
++    uint8_t* row = static_cast<uint8_t*>(pixmap.writable_addr(0, y));
++    for (int x = 0; x < pixmap.width(); ++x) {
++      uint8_t* pixel = row + x * 4;
++      if (pixel[3] == 0) {
++        continue;
++      }
++      const uint64_t hash = Mix(seed, PixelKey(pixel, x, y));
++      if ((hash & 31) == 0) {
++        pixel[(hash >> 8) % 3] ^= 1;
++      }
++    }
++  }
++}
++
++void PerturbSamples(float* samples, size_t count, uint64_t seed) {
++  for (size_t i = 0; i < count; ++i) {
++    if (samples[i] == 0.0f) {
++      continue;
++    }
++    const float unit = static_cast<float>(Mix(seed, i) & 0xffff) / 65535.0f;
++    samples[i] += samples[i] * kSampleScale * (unit - 0.5f);
++  }
++}
++
++unsigned PickConcurrency(unsigned real, uint64_t seed) {
++  const unsigned limit = std::max(real, kConcurrencyChoices[0]);
++  size_t top = 0;
++  for (size_t i = 0; i < std::size(kConcurrencyChoices); ++i) {
++    if (kConcurrencyChoices[i] <= limit) {
++      top = i;
++    }
++  }
++  const size_t step = top > 0 ? (Mix(seed, 1) & 1) : 0;
++  return kConcurrencyChoices[top - step];
++}
++
++float PickDeviceMemory(float real, uint64_t seed) {
++  if (real >= 4.0f && (Mix(seed, 2) & 1)) {
++    return real / 2.0f;
++  }
++  return real;
++}
++
++}
+diff --git a/third_party/blink/renderer/platform/shade/shade.h b/third_party/blink/renderer/platform/shade/shade.h
+new file mode 100644
+index 0000000000000..34ce2dd8f5b1e
+--- /dev/null
++++ b/third_party/blink/renderer/platform/shade/shade.h
+@@ -0,0 +1,25 @@
++#ifndef THIRD_PARTY_BLINK_RENDERER_PLATFORM_SHADE_SHADE_H_
++#define THIRD_PARTY_BLINK_RENDERER_PLATFORM_SHADE_SHADE_H_
++
++#include <cstddef>
++#include <cstdint>
++#include <optional>
++
++#include "third_party/blink/renderer/platform/platform_export.h"
++
++class SkPixmap;
++
++namespace blink::shade {
++
++PLATFORM_EXPORT std::optional<uint64_t> Seed();
++PLATFORM_EXPORT uint64_t Mix(uint64_t seed, uint64_t value);
++PLATFORM_EXPORT void PerturbPixels(const SkPixmap& pixmap, uint64_t seed);
++PLATFORM_EXPORT void PerturbSamples(float* samples,
++                                    size_t count,
++                                    uint64_t seed);
++PLATFORM_EXPORT unsigned PickConcurrency(unsigned real, uint64_t seed);
++PLATFORM_EXPORT float PickDeviceMemory(float real, uint64_t seed);
++
++}
++
++#endif

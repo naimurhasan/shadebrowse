@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>pending</title></head>
+<body>
+<pre id="out">pending</pre>
+<script>
+const fnv = (text) => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+};
+
+const drawCanvas = () => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 240;
+  canvas.height = 60;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#f60";
+  ctx.fillRect(10, 10, 100, 30);
+  ctx.fillStyle = "#069";
+  ctx.font = "16px Arial";
+  ctx.fillText("ShadeBrowse <canvas> 1.0", 4, 30);
+  ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+  ctx.arc(160, 30, 20, 0, Math.PI * 2);
+  ctx.fill();
+  return canvas;
+};
+
+const canvasHashes = () => {
+  const canvas = drawCanvas();
+  const pixels = canvas.getContext("2d").getImageData(0, 0, 240, 60).data;
+  return {
+    toDataURL: fnv(canvas.toDataURL()),
+    toDataURLAgain: fnv(canvas.toDataURL()),
+    getImageData: fnv(Array.from(pixels).join(",")),
+  };
+};
+
+const audioHash = async () => {
+  const context = new OfflineAudioContext(1, 5000, 44100);
+  const oscillator = context.createOscillator();
+  oscillator.type = "triangle";
+  oscillator.frequency.value = 10000;
+  const compressor = context.createDynamicsCompressor();
+  oscillator.connect(compressor);
+  compressor.connect(context.destination);
+  oscillator.start(0);
+  const buffer = await context.startRendering();
+  const samples = buffer.getChannelData(0);
+  let sum = 0;
+  for (let i = 4500; i < 5000; i++) sum += Math.abs(samples[i]);
+  return sum.toString();
+};
+
+(async () => {
+  const result = {
+    ...canvasHashes(),
+    audio: await audioHash(),
+    hardwareConcurrency: navigator.hardwareConcurrency,
+    deviceMemory: navigator.deviceMemory,
+    userAgent: navigator.userAgent,
+    dateNow: new Date().toISOString().slice(0, 16),
+    mathRandom: [Math.random(), Math.random()].map((n) => n.toFixed(8)).join(","),
+  };
+  document.getElementById("out").textContent = JSON.stringify(result, null, 2);
+  document.title = "done";
+})();
+</script>
+</body>
+</html>

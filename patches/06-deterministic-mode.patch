@@ -1,0 +1,54 @@
+diff --git a/content/renderer/render_process_impl.cc b/content/renderer/render_process_impl.cc
+index b35d4404c8118..e5a10d5de333f 100644
+--- a/content/renderer/render_process_impl.cc
++++ b/content/renderer/render_process_impl.cc
+@@ -25,7 +25,10 @@
+ #include "base/feature_list.h"
+ #include "base/functional/bind.h"
+ #include "base/logging.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/time/time_override.h"
+ #include "base/memory/ptr_util.h"
++#include "base/no_destructor.h"
+ #include "base/synchronization/waitable_event.h"
+ #include "base/system/sys_info.h"
+ #include "base/task/task_features.h"
+@@ -91,6 +94,29 @@ void V8DcheckCallbackHandler(const char* file, int line, const char* message) {
+ }
+ #endif  // BUILDFLAG(DCHECK_IS_CONFIGURABLE)
+ 
++constexpr int64_t kShadeEpochSeconds = 1735689600;
++
++base::Time ShadeFixedNow() {
++  static const base::TimeTicks start = base::TimeTicks::Now();
++  return base::Time::FromSecondsSinceUnixEpoch(kShadeEpochSeconds) +
++         (base::TimeTicks::Now() - start);
++}
++
++void ApplyShadeDeterministicMode() {
++  const base::CommandLine& command_line =
++      *base::CommandLine::ForCurrentProcess();
++  if (!command_line.HasSwitch("shade-deterministic")) {
++    return;
++  }
++  uint64_t seed = 0;
++  base::StringToUint64(command_line.GetSwitchValueASCII("shade-seed"), &seed);
++  const std::string flag =
++      "--random-seed=" + base::NumberToString(static_cast<int>(seed % 2147483647) + 1);
++  v8::V8::SetFlagsFromString(flag.data(), flag.size());
++  static base::NoDestructor<base::subtle::ScopedTimeClockOverrides> overrides(
++      &ShadeFixedNow, nullptr, nullptr);
++}
++
+ }  // namespace
+ 
+ namespace content {
+@@ -124,6 +150,8 @@ RenderProcessImpl::RenderProcessImpl()
+   }
+ #endif  // BUILDFLAG(DCHECK_IS_CONFIGURABLE)
+ 
++  ApplyShadeDeterministicMode();
++
+   if (!disallow_v8_feature_flag_overrides) {
+     if (base::SysInfo::IsLowEndDevice()) {
+       std::string_view optimize_flag("--optimize-for-size");
