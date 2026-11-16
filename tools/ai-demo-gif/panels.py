@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 from steps import STEPS, URL
 
-WIDTH, HEIGHT = 700, 700
+WIDTH, HEIGHT = 820, 700
 OFFSET = -0.1
 BACKGROUND = (13, 17, 23)
 ACTIVE = (35, 70, 64)
@@ -15,9 +15,9 @@ TEXT = (230, 237, 243)
 STRING = (165, 214, 255)
 MUTED = (139, 148, 158)
 TEAL = (43, 181, 160)
-MONO = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 15)
-SMALL = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 13)
-BOLD = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 18)
+MONO = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 18)
+SMALL = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 15)
+BOLD = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 23)
 HEADER = [
     "shade = Shade(page)",
     f"page.goto(\"{urlsplit(URL).netloc}{urlsplit(URL).path.rstrip('/')}\")",
@@ -25,7 +25,7 @@ HEADER = [
 ]
 
 
-def wrap(text, width=78):
+def wrap(text, width=84):
     return [text[i:i + width] for i in range(0, len(text), width)] or [""]
 
 
@@ -36,10 +36,10 @@ def render(active, codes):
     y = 70
     for line in HEADER:
         draw.text((24, y), line, font=MONO, fill=TEXT)
-        y += 24
+        y += 28
     for index, instruction in enumerate(STEPS):
         lines = wrap(codes[index]) if index in codes else ["Gemini is picking the element..."] if index == active else []
-        height = 26 + 18 * len(lines)
+        height = 30 + 20 * len(lines)
         if index == active:
             draw.rectangle([12, y - 6, WIDTH - 12, y + height], fill=ACTIVE)
         draw.text((24, y), "shade.do(", font=MONO, fill=TEXT)
@@ -47,9 +47,9 @@ def render(active, codes):
         draw.text((24 + draw.textlength(f"shade.do(\"{instruction}\"", font=MONO), y), ")", font=MONO, fill=TEXT)
         for offset, line in enumerate(lines):
             color = TEAL if index in codes else MUTED
-            draw.text((40, y + 24 + 18 * offset), ("-> " if offset == 0 else "   ") + line, font=SMALL, fill=color)
-        y += height + 22
-    draw.text((24, HEIGHT - 60), "Answers are saved to shade-steps.json, so the next", font=SMALL, fill=MUTED)
+            draw.text((40, y + 28 + 20 * offset), ("-> " if offset == 0 else "   ") + line, font=SMALL, fill=color)
+        y += height + 26
+    draw.text((24, HEIGHT - 64), "Answers are saved to shade-steps.json, so the next", font=SMALL, fill=MUTED)
     draw.text((24, HEIGHT - 40), "run replays the same selectors without calling the model.", font=SMALL, fill=MUTED)
     return image
 
