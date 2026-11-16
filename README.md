@@ -71,15 +71,16 @@ The [`shadebrowse`](sdk/python) Python helper turns a step written in plain Engl
 
 ```mermaid
 flowchart LR
-    A["shade.do(#quot;click login#quot;)"] --> B{"Saved in shade-steps.json<br/>and selector still on the page?"}
-    B -- yes --> H["Reuse saved Playwright code<br/>no model call"]
-    B -- no --> C["List visible buttons, links, fields<br/>e0: input #quot;Username#quot;<br/>e1: input #quot;Password#quot;<br/>e2: button #quot;Login#quot;"]
-    C --> D["Gemini Decision 1<br/>one request, two choice questions"]
-    D --> E["action: click | fill | press<br/>element: e0 … e254"]
-    E --> F["Text or key taken from the step<br/>#quot;type tomsmith into …#quot; → tomsmith"]
-    F --> G["Build Playwright code<br/>page.locator(#quot;button:has-text('Login')#quot;).click()"]
-    G --> S["Save to shade-steps.json"]
-    S --> R["Run it in ShadeBrowse"]
+    A["shade.do(#quot;click login#quot;)"] --> B{"Step saved in<br/>shade-steps.json?"}
+    B -- "yes" --> K{"Saved selector<br/>still on the page?"}
+    K -- "yes" --> H["Reuse saved code<br/>no model call"]
+    K -- "no: page changed,<br/>saved code broke" --> C
+    B -- "no: first run" --> C["List visible buttons,<br/>links and fields<br/>e0, e1, e2 …"]
+    C --> D["Gemini Decision 1<br/>action? element?"]
+    D --> F["Text or key from the step<br/>#quot;type tomsmith …#quot; → tomsmith"]
+    F --> G["Build Playwright code"]
+    G --> S["Save or overwrite<br/>shade-steps.json"]
+    S --> R["Run in ShadeBrowse"]
     H --> R
 ```
 
@@ -91,7 +92,7 @@ shade.do("type tomsmith into the username field")   # page.locator("#username").
 shade.do("click login")                             # page.locator("button:has-text('Login')").click()
 ```
 
-Each answer is saved to `shade-steps.json`. The next run replays the saved selectors without calling the model, so it behaves like ordinary hand-written code. The model is only asked again when a saved selector no longer matches anything on the page.
+Each answer is saved to `shade-steps.json`. The next run replays the saved selectors without calling the model, so it behaves like ordinary hand-written code. If the site changes and a saved selector no longer matches anything, the helper asks Decision 1 again for that step only, overwrites the broken entry in `shade-steps.json`, and carries on. The steps that still work keep running from the file.
 
 - **Key:** set `OPENROUTER_API_KEY` (uses OpenRouter's decisions endpoint) or `GEMINI_API_KEY` (uses Google's Gemini API directly) when you run your script. Neither is needed to build or run the browser.
 - **Cost:** Decision 1 costs $0.10 per million input tokens and nothing for output. A test call on OpenRouter cost $0.0000093. Recording both demos took 7 calls; a rerun takes none.
