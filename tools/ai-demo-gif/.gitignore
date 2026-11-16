@@ -4,6 +4,6 @@ panel-*.png
 panels.txt
 shade-steps.json
 g*.png
-ai-steps.gif
+*.gif
 *.egg-info
 __pycache__

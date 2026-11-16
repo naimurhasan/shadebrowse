@@ -3,7 +3,9 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from steps import STEPS
+from urllib.parse import urlsplit
+
+from steps import STEPS, URL
 
 WIDTH, HEIGHT = 700, 700
 OFFSET = -0.1
@@ -18,7 +20,7 @@ SMALL = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 BOLD = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 18)
 HEADER = [
     "shade = Shade(page)",
-    "page.goto(\"the-internet.herokuapp.com/login\")",
+    f"page.goto(\"{urlsplit(URL).netloc}{urlsplit(URL).path.rstrip('/')}\")",
     "",
 ]
 

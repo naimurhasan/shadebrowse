@@ -22,7 +22,7 @@ SNAPSHOT = """() => {
   };
   return [...document.querySelectorAll("a, button, input, select, textarea, [role=button], [onclick]")]
     .filter((el) => visible(el) && !seen.has(el) && seen.add(el))
-    .slice(0, 150)
+    .slice(0, 400)
     .map((el, index) => ({
       index,
       tag: el.tagName.toLowerCase(),

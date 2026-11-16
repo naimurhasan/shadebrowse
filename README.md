@@ -7,10 +7,10 @@
 <p align="center">A Chromium fork where one seed decides how the browser fingerprints and behaves, so the same seed gives the same run.</p>
 
 <p align="center">
-  <img src="docs/steps.gif" alt="A Playwright script on the left, with each step highlighted as ShadeBrowse performs it on the right: open Wikipedia, click search, type, press Enter, click a link, scroll">
+  <img src="docs/steps.gif" alt="Plain-English steps on the left are turned into Playwright code by Gemini while ShadeBrowse searches Wikipedia and opens the Blink article on the right">
 </p>
 
-<p align="center"><sub>Plain Playwright driving ShadeBrowse. Each line lights up as the browser runs it. Code: <a href="examples/wikipedia.py">examples/wikipedia.py</a>.</sub></p>
+<p align="center"><sub>Steps written in plain English. Gemini picks each element and the matching Playwright line appears under the step. Code: <a href="examples/wikipedia.py">examples/wikipedia.py</a>.</sub></p>
 
 ---
 
