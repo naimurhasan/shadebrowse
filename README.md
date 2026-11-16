@@ -6,6 +6,12 @@
 
 <p align="center">A Chromium fork where one seed decides how the browser fingerprints and behaves, so the same seed gives the same run.</p>
 
+<p align="center">
+  <img src="docs/demo.gif" alt="A Playwright script launching ShadeBrowse with seeds 42, 42 and 7 on BrowserLeaks' canvas test">
+</p>
+
+<p align="center"><sub>Seeds 42 and 42 give the same canvas signature on BrowserLeaks. Seed 7 gives a different one.</sub></p>
+
 ---
 
 ## What it is
@@ -21,6 +27,12 @@ It's for developers who build scrapers, test suites and browser agents, and who 
 It keeps the standard Chrome user agent and works with Playwright, Puppeteer and anything else that drives Chrome.
 
 ## Quick start
+
+| New tab | Search | WebRTC leak test |
+|---|---|---|
+| ![New tab](docs/screenshots/ui-newtab.png) | ![DuckDuckGo search](docs/screenshots/ui-search.png) | ![WebRTC: no leak](docs/screenshots/ui-webrtc.png) |
+
+<sub>The WebRTC screenshot has the server's public IP blurred. "Local IP Address" is empty and the test reports "No Leak".</sub>
 
 ```bash
 curl -LO https://github.com/naimurhasan/shadebrowse/releases/latest/download/shadebrowse-160.0.8162.0-linux-x64.tar.xz
@@ -88,6 +100,23 @@ The CPU core count is chosen from values at or below the real one. On the 4-core
 
 `navigator.deviceMemory` is either the real value or half of it (only when the real value is 4 GB or more).
 
+### Compared with similar projects
+
+Each browser was launched with Playwright in headed mode on a virtual display, on the same VM, and visited each test page once.
+
+| Check | Chromium (Playwright) | ShadeBrowse, seed 42 | Camoufox 0.5.9 | CloakBrowser 0.7.2 |
+|---|---|---|---|---|
+| `navigator.webdriver` | `true` | `true` | `false` | not tested |
+| [deviceandbrowserinfo.com bot check](https://deviceandbrowserinfo.com/are_you_a_bot) | "You are a bot" | "You are a bot" | "You are human" | not tested |
+| [bot.sannysoft.com](https://bot.sannysoft.com/) failed rows | 2 | 2 | 1 | not tested |
+| BrowserLeaks canvas signature | `4DB008E3…` (fixed) | `BB313E66…` (changes with the seed) | `AE58B835…` | not tested |
+
+**Reading this honestly:** ShadeBrowse is not a stealth browser. It doesn't hide automation, so bot checks flag it exactly as they flag stock Chromium driven by Playwright. Camoufox hides automation and passes these checks. What ShadeBrowse adds is a fingerprint you control with a seed and runs you can reproduce.
+
+CloakBrowser now needs a license key to launch, so it wasn't tested.
+
+Screenshots: [Chromium](docs/compare/chromium-areyouabot.png), [ShadeBrowse](docs/compare/shadebrowse-areyouabot.png), [Camoufox](docs/compare/camoufox-areyouabot.png) on the bot check; [Chromium](docs/compare/chromium-sannysoft.png), [ShadeBrowse](docs/compare/shadebrowse-sannysoft.png), [Camoufox](docs/compare/camoufox-sannysoft.png) on Sannysoft.
+
 ### Cost
 
 The noise has to touch the pixels, so canvas reads get slower. Reading a 1024×1024 canvas 20 times with `getImageData`, 5 runs each:
@@ -101,7 +130,7 @@ That works out to about 4.3 ms extra per megapixel read. Pages that don't read c
 
 ## How it works
 
-There are 9 patches in [`patches/`](patches), adding 184 lines to Chromium.
+There are 10 patches in [`patches/`](patches). The code patches (01–09) add 188 lines to Chromium. Patch 10 renames "Chromium" to "ShadeBrowse" in the interface text.
 
 | Patch | What it changes |
 |---|---|
@@ -112,8 +141,9 @@ There are 9 patches in [`patches/`](patches), adding 184 lines to Chromium.
 | `05-seed-propagation` | The browser passes the seed to every renderer process, generating one per session if none is given, so all tabs and frames agree. |
 | `06-deterministic-mode` | Test mode: fixes the wall clock's starting point and sets V8's `--random-seed`. |
 | `07-webrtc-hide-local-ip` | WebRTC uses only the public network interface by default, so local IP addresses aren't exposed. |
-| `08-duckduckgo-default` | DuckDuckGo is the default search engine. |
+| `08-duckduckgo-default` | DuckDuckGo is the default search engine, in every region. |
 | `09-branding` | Product name. Icons are in [`assets/`](assets). |
+| `10-ui-strings` | Interface text says "ShadeBrowse" instead of "Chromium". Copyright lines are unchanged. |
 
 ## Build from source
 
@@ -132,9 +162,9 @@ Chromium is pinned to the commit in [`CHROMIUM_COMMIT`](CHROMIUM_COMMIT), and th
 
 - **Linux x64 only** for now.
 - **Not covered yet:** `canvas.toBlob()`, WebGL `readPixels`, the font list, the screen size and the time zone. The WebGL graphics-card name is left as the real one on purpose.
-- **Not a way past bot protection.** Noise makes your browser harder to track across sites; it doesn't make it look human, and test mode is easy to spot. ShadeBrowse doesn't solve CAPTCHAs or challenges.
+- **Not a way past bot protection.** Noise makes your browser harder to track across sites; it doesn't make it look human, and test mode is easy to spot. Bot checks flag ShadeBrowse under Playwright just as they flag stock Chromium (see the comparison above). ShadeBrowse doesn't solve CAPTCHAs or challenges.
 - **Test mode:** time keeps moving at real speed from the fixed start, so timing-dependent pages can still vary. It also can't be combined with `--virtual-time-budget`.
-- **Not measured:** the WebRTC and default-search patches haven't been checked in a running browser yet.
+- **Interface text:** only the English strings are renamed. Other languages fall back to English for renamed messages.
 - `crypto.getRandomValues()` is never seeded, because predictable values there would weaken encryption.
 
 ## License
