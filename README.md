@@ -7,10 +7,10 @@
 <p align="center">A Chromium fork where one seed decides how the browser fingerprints and behaves, so the same seed gives the same run.</p>
 
 <p align="center">
-  <img src="docs/demo.gif" alt="A Playwright script launching ShadeBrowse with seeds 42, 42 and 7 on BrowserLeaks' canvas test">
+  <img src="docs/steps.gif" alt="A Playwright script on the left, with each step highlighted as ShadeBrowse performs it on the right: open Wikipedia, click search, type, press Enter, click a link, scroll">
 </p>
 
-<p align="center"><sub>Seeds 42 and 42 give the same canvas signature on BrowserLeaks. Seed 7 gives a different one.</sub></p>
+<p align="center"><sub>Plain Playwright driving ShadeBrowse. Each line lights up as the browser runs it. Code: <a href="examples/wikipedia.py">examples/wikipedia.py</a>.</sub></p>
 
 ---
 
@@ -73,6 +73,8 @@ All numbers below come from [`tests/run-fingerprint.sh`](tests/run-fingerprint.s
 The same seed gives the same values. Different seeds give different values. Reading the same canvas twice in one page also returns the same value, so the noise can't be detected by comparing two reads.
 
 ### BrowserLeaks canvas test
+
+![Seeds 42, 42 and 7 on BrowserLeaks' canvas test](docs/demo.gif)
 
 Signatures from [browserleaks.com/canvas](https://browserleaks.com/canvas):
 
