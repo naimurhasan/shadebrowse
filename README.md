@@ -70,7 +70,7 @@ The [`shadebrowse`](sdk/python) Python helper turns a step written in plain Engl
 3. Any text to type or key to press is taken from the step itself, for example `tomsmith` from "type tomsmith into the username field".
 
 ```mermaid
-flowchart TD
+flowchart LR
     A["shade.do(#quot;click login#quot;)"] --> B{"Saved in shade-steps.json<br/>and selector still on the page?"}
     B -- yes --> H["Reuse saved Playwright code<br/>no model call"]
     B -- no --> C["List visible buttons, links, fields<br/>e0: input #quot;Username#quot;<br/>e1: input #quot;Password#quot;<br/>e2: button #quot;Login#quot;"]
