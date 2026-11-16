@@ -69,6 +69,20 @@ The [`shadebrowse`](sdk/python) Python helper turns a step written in plain Engl
 2. It asks Decision 1 two multiple-choice questions in one request: which action (click, type or press), and which element.
 3. Any text to type or key to press is taken from the step itself, for example `tomsmith` from "type tomsmith into the username field".
 
+```mermaid
+flowchart TD
+    A["shade.do(&quot;click login&quot;)"] --> B{"Saved in shade-steps.json<br/>and selector still on the page?"}
+    B -- yes --> H["Reuse saved Playwright code<br/>no model call"]
+    B -- no --> C["List visible buttons, links, fields<br/>e0: input &quot;Username&quot;<br/>e1: input &quot;Password&quot;<br/>e2: button &quot;Login&quot;"]
+    C --> D["Gemini Decision 1<br/>one request, two choice questions"]
+    D --> E["action: click | fill | press<br/>element: e0 … e254"]
+    E --> F["Text or key taken from the step<br/>&quot;type tomsmith into …&quot; → tomsmith"]
+    F --> G["Build Playwright code<br/>page.locator(&quot;button:has-text('Login')&quot;).click()"]
+    G --> S["Save to shade-steps.json"]
+    S --> R["Run it in ShadeBrowse"]
+    H --> R
+```
+
 ```python
 from shadebrowse import Shade
 
