@@ -1,0 +1,6 @@
+[project]
+name = "shadebrowse"
+version = "0.1.0"
+description = "Plain-English Playwright steps for ShadeBrowse, turned into cached selectors by Gemini"
+requires-python = ">=3.9"
+dependencies = ["playwright"]

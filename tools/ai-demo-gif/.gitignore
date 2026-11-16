@@ -1,0 +1,9 @@
+screen.mp4
+timeline.json
+panel-*.png
+panels.txt
+shade-steps.json
+g*.png
+ai-steps.gif
+*.egg-info
+__pycache__
