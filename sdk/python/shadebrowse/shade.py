@@ -4,9 +4,8 @@ from urllib.parse import urlsplit
 from .cache import Cache
 from .code import to_code
 from .elements import collect
-from .llm import complete
-from .parse import parse_action
-from .prompt import build_messages
+from .decision import MODEL, decide
+from .value import extract_value
 
 
 @dataclass
@@ -24,10 +23,14 @@ def cache_key(url, instruction):
 
 
 class Shade:
-    def __init__(self, page, cache="shade-steps.json", model="gemini-3.1-flash-lite"):
+    def __init__(self, page, cache="shade-steps.json", model=MODEL):
         self.page = page
         self.cache = Cache(cache)
         self.model = model
+
+    def choose(self, instruction, elements):
+        action, index, _ = decide(instruction, elements, self.model)
+        return {"action": action, "index": index, "value": extract_value(instruction, action)}
 
     def plan(self, instruction):
         key = cache_key(self.page.url, instruction)
@@ -35,7 +38,7 @@ class Shade:
         if saved and self.page.locator(saved["selector"]).count():
             return Step(instruction, saved["action"], saved["selector"], saved["code"], True)
         elements = collect(self.page)
-        action = parse_action(complete(build_messages(instruction, elements), self.model))
+        action = self.choose(instruction, elements)
         selector = elements[action["index"]]["selector"]
         code = to_code(action, selector)
         self.cache.put(key, {"action": action, "selector": selector, "code": code})

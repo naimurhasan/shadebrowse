@@ -7,10 +7,10 @@
 <p align="center">A Chromium fork where one seed decides how the browser fingerprints and behaves, so the same seed gives the same run.</p>
 
 <p align="center">
-  <img src="docs/steps.gif" alt="Plain-English steps on the left are turned into Playwright code by Gemini while ShadeBrowse searches Wikipedia and opens the Blink article on the right">
+  <img src="docs/steps.gif" alt="Plain-English steps on the left are turned into Playwright code by Gemini Decision 1 while ShadeBrowse searches Wikipedia and opens the Blink article on the right">
 </p>
 
-<p align="center"><sub>Steps written in plain English. Gemini picks each element and the matching Playwright line appears under the step. Code: <a href="examples/wikipedia.py">examples/wikipedia.py</a>.</sub></p>
+<p align="center"><sub>Steps written in plain English. Gemini Decision 1 picks each element and the matching Playwright line appears under the step. Code: <a href="examples/wikipedia.py">examples/wikipedia.py</a>.</sub></p>
 
 ---
 
@@ -57,13 +57,17 @@ const browser = await chromium.launch({
 });
 ```
 
-## Plain-English steps (optional AI)
+## Plain-English steps with Gemini Decision 1 (optional)
 
 <p align="center">
-  <img src="docs/ai-steps.gif" alt="Plain-English steps on the left are turned into Playwright selectors by Gemini, while ShadeBrowse fills in a login form and logs in on the right">
+  <img src="docs/ai-steps.gif" alt="Plain-English steps on the left are turned into Playwright code by Gemini Decision 1, while ShadeBrowse fills in a login form and logs in on the right">
 </p>
 
-The [`shadebrowse`](sdk/python) Python helper turns a step written in plain English into one Playwright action. It sends Gemini a short list of the page's buttons, links and fields, and gets back which element to use and what to do with it:
+The [`shadebrowse`](sdk/python) Python helper turns a step written in plain English into one Playwright action, using [Gemini Decision 1](https://blog.google/innovation-and-ai/technology/developers-tools/gemini-decisions-api/). Decision 1 doesn't write text. It picks from options you give it and returns a probability for each one, which suits this job:
+
+1. The helper lists the page's visible buttons, links and fields, up to 255 of them.
+2. It asks Decision 1 two multiple-choice questions in one request: which action (click, type or press), and which element.
+3. Any text to type or key to press is taken from the step itself, for example `tomsmith` from "type tomsmith into the username field".
 
 ```python
 from shadebrowse import Shade
@@ -75,12 +79,11 @@ shade.do("click login")                             # page.locator("button:has-t
 
 Each answer is saved to `shade-steps.json`. The next run replays the saved selectors without calling the model, so it behaves like ordinary hand-written code. The model is only asked again when a saved selector no longer matches anything on the page.
 
-- **Key:** set `OPENROUTER_API_KEY` or `GEMINI_API_KEY` when you run your script. It isn't needed to build or run the browser.
-- **Model:** `gemini-3.1-flash-lite` by default. Pass `Shade(page, model=...)` to change it.
-- **Cost:** recording the demo above took 4 model calls. The rerun took none.
-- **Install:** `pip install -e sdk/python`. Full example: [`examples/login.py`](examples/login.py).
+- **Key:** set `OPENROUTER_API_KEY` (uses OpenRouter's decisions endpoint) or `GEMINI_API_KEY` (uses Google's Gemini API directly) when you run your script. Neither is needed to build or run the browser.
+- **Cost:** Decision 1 costs $0.10 per million input tokens and nothing for output. A test call on OpenRouter cost $0.0000093. Recording both demos took 7 calls; a rerun takes none.
+- **Install:** `pip install -e sdk/python`. Examples: [`examples/login.py`](examples/login.py), [`examples/wikipedia.py`](examples/wikipedia.py).
 
-The demo uses [the-internet.herokuapp.com](https://the-internet.herokuapp.com/login), a public practice site, and its published test login.
+The login demo uses [the-internet.herokuapp.com](https://the-internet.herokuapp.com/login), a public practice site, and its published test login.
 
 ## Results
 

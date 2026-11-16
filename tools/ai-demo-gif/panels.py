@@ -32,13 +32,13 @@ def wrap(text, width=84):
 def render(active, codes):
     image = Image.new("RGB", (WIDTH, HEIGHT), BACKGROUND)
     draw = ImageDraw.Draw(image)
-    draw.text((24, 22), "Plain English -> Playwright, via Gemini", font=BOLD, fill=TEXT)
+    draw.text((24, 22), "Plain English -> Playwright, via Gemini Decision 1", font=BOLD, fill=TEXT)
     y = 70
     for line in HEADER:
         draw.text((24, y), line, font=MONO, fill=TEXT)
         y += 28
     for index, instruction in enumerate(STEPS):
-        lines = wrap(codes[index]) if index in codes else ["Gemini is picking the element..."] if index == active else []
+        lines = wrap(codes[index]) if index in codes else ["Decision 1 is picking the element..."] if index == active else []
         height = 30 + 20 * len(lines)
         if index == active:
             draw.rectangle([12, y - 6, WIDTH - 12, y + height], fill=ACTIVE)

@@ -1,4 +1,8 @@
-SNAPSHOT = """() => {
+SNAPSHOT = """(limit) => {
+  const onScreen = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < innerHeight ? 1 : 0;
+  };
   const seen = new Set();
   const visible = (el) => {
     const r = el.getBoundingClientRect();
@@ -22,7 +26,8 @@ SNAPSHOT = """() => {
   };
   return [...document.querySelectorAll("a, button, input, select, textarea, [role=button], [onclick]")]
     .filter((el) => visible(el) && !seen.has(el) && seen.add(el))
-    .slice(0, 400)
+    .sort((a, b) => onScreen(b) - onScreen(a))
+    .slice(0, limit)
     .map((el, index) => ({
       index,
       tag: el.tagName.toLowerCase(),
@@ -33,5 +38,5 @@ SNAPSHOT = """() => {
 }"""
 
 
-def collect(page):
-    return page.evaluate(SNAPSHOT)
+def collect(page, limit=255):
+    return page.evaluate(SNAPSHOT, limit)
